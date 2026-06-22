@@ -5,16 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>文化馆场馆预约</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
-
   <!-- 登录界面 -->
   <div id="loginPage" class="max-w-md mx-auto p-6 pt-20">
     <div class="bg-white rounded-2xl shadow-lg p-8">
       <h1 class="text-3xl font-bold text-center text-blue-600 mb-2">文化馆预约</h1>
       <p class="text-gray-500 text-center mb-8">免费使用场馆和教室</p>
-
       <div id="phoneLogin">
         <label class="block text-lg mb-2">手机号码</label>
         <input type="tel" id="phoneInput" class="w-full text-lg p-4 border border-gray-300 rounded-xl mb-4" placeholder="输入手机号">
@@ -22,48 +19,39 @@
         <input type="text" id="otpInput" class="w-full text-lg p-4 border border-gray-300 rounded-xl mt-4 hidden" placeholder="输入验证码">
         <button id="verifyOtpBtn" class="w-full bg-green-600 text-white text-xl font-bold py-4 rounded-xl mt-4 hidden hover:bg-green-700 transition">验证登录</button>
       </div>
-
       <div class="flex items-center my-6">
         <div class="flex-1 border-t border-gray-200"></div>
         <span class="px-4 text-gray-400">或</span>
         <div class="flex-1 border-t border-gray-200"></div>
       </div>
-
       <button id="wechatLoginBtn" class="w-full bg-green-500 text-white text-xl font-bold py-4 rounded-xl hover:bg-green-600 transition">微信一键登录</button>
       <p class="text-gray-400 text-sm text-center mt-4">首次登录后自动注册</p>
     </div>
   </div>
-
   <!-- 主界面（预约） -->
   <div id="mainPage" class="max-w-2xl mx-auto p-4 hidden">
     <div class="flex justify-between items-center mb-6">
       <div class="text-lg">👤 <span id="userDisplay" class="font-bold"></span></div>
       <button id="logoutBtn" class="text-red-500 underline">退出</button>
     </div>
-
     <div class="bg-white rounded-2xl shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">1️⃣ 选择课程</h2>
       <div id="courseList" class="grid grid-cols-2 gap-4"></div>
     </div>
-
     <div class="bg-white rounded-2xl shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">2️⃣ 选择日期</h2>
       <input type="date" id="datePicker" class="w-full text-xl p-4 border border-gray-300 rounded-xl">
     </div>
-
     <div class="bg-white rounded-2xl shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">3️⃣ 选择时段</h2>
       <div id="timeSlots" class="grid grid-cols-2 gap-3"></div>
     </div>
-
     <button id="submitBooking" class="w-full bg-blue-600 text-white text-2xl font-bold py-6 rounded-2xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>立即预约</button>
-
     <div class="mt-8">
       <h2 class="text-2xl font-bold mb-4" onclick="document.getElementById('myBookings').classList.toggle('hidden')" role="button">📋 我的预约 ▼</h2>
       <div id="myBookings" class="bg-white rounded-2xl shadow p-4 hidden"></div>
     </div>
   </div>
-
   <!-- 管理后台 -->
   <div id="adminPage" class="max-w-6xl mx-auto p-4 hidden">
     <h1 class="text-3xl font-bold mb-6">📊 管理后台</h1>
@@ -83,16 +71,23 @@
       </table>
     </div>
   </div>
-
-  <script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     const SUPABASE_URL = 'https://aermnnksvhezfykxefla.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_l9yA9MKkAqT_4gIrgoCriA_kCDlLrIR';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
     let selectedCourse = null;
     let selectedDate = null;
     let selectedTimeSlot = null;
+
+    window.cancelBooking = async function(bookingId) {
+      if (!confirm('确定要取消这个预约吗？')) return;
+      const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+      if (error) alert('取消失败');
+      else loadMyBookings();
+    };
 
     function formatPhone(phone) {
       if (!phone) return '';
@@ -109,18 +104,10 @@
 
     sendOtpBtn.addEventListener('click', async () => {
       const phone = phoneInput.value.trim();
-      if (!/^1[0-9]{10}$/.test(phone)) {
-        alert('请输入正确的11位手机号码');
-        return;
-      }
+      if (!/^1[0-9]{10}$/.test(phone)) { alert('请输入正确的11位手机号码'); return; }
       const { error } = await supabase.auth.signInWithOtp({ phone });
-      if (error) {
-        alert('发送失败：' + error.message);
-      } else {
-        alert('验证码已发送，请注意查收');
-        otpInput.classList.remove('hidden');
-        verifyOtpBtn.classList.remove('hidden');
-      }
+      if (error) { alert('发送失败：' + error.message); }
+      else { alert('验证码已发送，请注意查收'); otpInput.classList.remove('hidden'); verifyOtpBtn.classList.remove('hidden'); }
     });
 
     verifyOtpBtn.addEventListener('click', async () => {
@@ -143,16 +130,11 @@
 
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        currentUser = session.user;
-        afterLogin();
-      } else {
+      if (session?.user) { currentUser = session.user; afterLogin(); }
+      else {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('key') === 'admin123') {
-          showAdmin();
-        } else {
-          loginPage.classList.remove('hidden');
-        }
+        if (params.get('key') === 'admin123') { showAdmin(); }
+        else { loginPage.classList.remove('hidden'); }
       }
     }
 
@@ -184,8 +166,8 @@
     }
 
     function selectCourse(element, course) {
-      document.querySelectorAll('#courseList div').forEach(el => el.classList.remove('border-blue-500', 'bg-blue-50'));
-      element.classList.add('border-blue-500', 'bg-blue-50');
+      document.querySelectorAll('#courseList div').forEach(el => el.classList.remove('border-blue-500','bg-blue-50'));
+      element.classList.add('border-blue-500','bg-blue-50');
       selectedCourse = course;
       checkSubmitReady();
       if (selectedDate) loadTimeSlots();
@@ -202,17 +184,11 @@
       const container = document.getElementById('timeSlots');
       container.innerHTML = '';
       if (!selectedCourse || !selectedDate) return;
-
       const roomId = selectedCourse.room_id;
       const { data: occupied } = await supabase
-        .from('bookings')
-        .select('time_slot')
-        .eq('room_id', roomId)
-        .eq('booking_date', selectedDate)
-        .eq('status', 'confirmed');
-
+        .from('bookings').select('time_slot')
+        .eq('room_id', roomId).eq('booking_date', selectedDate).eq('status','confirmed');
       const occupiedSlots = occupied ? occupied.map(b => b.time_slot) : [];
-
       slots.forEach(slot => {
         const btn = document.createElement('button');
         const isFull = occupiedSlots.includes(slot);
@@ -221,8 +197,8 @@
         btn.disabled = isFull;
         if (!isFull) {
           btn.addEventListener('click', () => {
-            document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600', 'bg-blue-50'));
-            btn.classList.add('border-blue-600', 'bg-blue-50');
+            document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600','bg-blue-50'));
+            btn.classList.add('border-blue-600','bg-blue-50');
             selectedTimeSlot = slot;
             checkSubmitReady();
           });
@@ -237,16 +213,10 @@
 
     document.getElementById('submitBooking').addEventListener('click', async () => {
       if (!selectedCourse || !selectedDate || !selectedTimeSlot) return;
-
       const { data: conflict } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('room_id', selectedCourse.room_id)
-        .eq('booking_date', selectedDate)
-        .eq('time_slot', selectedTimeSlot)
-        .eq('status', 'confirmed')
-        .maybeSingle();
-
+        .from('bookings').select('id')
+        .eq('room_id', selectedCourse.room_id).eq('booking_date', selectedDate)
+        .eq('time_slot', selectedTimeSlot).eq('status','confirmed').maybeSingle();
       if (conflict) {
         alert('该时段刚刚被其他人预约了，请刷新后重试');
         loadTimeSlots();
@@ -254,7 +224,6 @@
         checkSubmitReady();
         return;
       }
-
       const { error } = await supabase.from('bookings').insert({
         user_id: currentUser.id,
         course_id: selectedCourse.id,
@@ -263,20 +232,16 @@
         time_slot: selectedTimeSlot,
         status: 'confirmed'
       });
-
       if (error) {
-        if (error.code === '23505') {
-          alert('该时段已经被预约，请选择其他时段');
-        } else {
-          alert('预约失败：' + error.message);
-        }
+        if (error.code === '23505') { alert('该时段已经被预约，请选择其他时段'); }
+        else { alert('预约失败：' + error.message); }
         loadTimeSlots();
       } else {
         alert('预约成功！');
         selectedTimeSlot = null;
         loadTimeSlots();
         loadMyBookings();
-        document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600', 'bg-blue-50'));
+        document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600','bg-blue-50'));
         document.getElementById('submitBooking').disabled = true;
       }
     });
@@ -285,16 +250,12 @@
       const container = document.getElementById('myBookings');
       container.classList.remove('hidden');
       const { data } = await supabase
-        .from('bookings')
-        .select('id, courses(name), rooms(name), booking_date, time_slot, status')
-        .eq('user_id', currentUser.id)
-        .order('booking_date', { ascending: false });
-
+        .from('bookings').select('id, courses(name), rooms(name), booking_date, time_slot, status')
+        .eq('user_id', currentUser.id).order('booking_date', { ascending: false });
       if (!data || data.length === 0) {
         container.innerHTML = '<p class="text-gray-500 p-4">暂无预约记录</p>';
         return;
       }
-
       container.innerHTML = data.map(b => `
         <div class="flex justify-between items-center border-b p-3">
           <div>
@@ -309,13 +270,6 @@
         </div>
       `).join('');
     }
-
-    window.cancelBooking = async function(bookingId) {
-      if (!confirm('确定要取消这个预约吗？')) return;
-      const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
-      if (error) alert('取消失败');
-      else loadMyBookings();
-    };
 
     function showAdmin() {
       loginPage.classList.add('hidden');
@@ -334,15 +288,9 @@
     async function filterAdmin() {
       const dateVal = document.getElementById('adminDateFilter').value;
       const roomVal = document.getElementById('adminRoomFilter').value;
-
-      let query = supabase
-        .from('bookings')
-        .select('*, courses(name), rooms(name)')
-        .order('booking_date', { ascending: false });
-
+      let query = supabase.from('bookings').select('*, courses(name), rooms(name)').order('booking_date', { ascending: false });
       if (dateVal) query = query.eq('booking_date', dateVal);
       if (roomVal) query = query.eq('room_id', roomVal);
-
       const { data } = await query;
       const tbody = document.getElementById('adminTableBody');
       tbody.innerHTML = data.map(b => `
@@ -363,21 +311,14 @@
     document.getElementById('exportCsv').addEventListener('click', async () => {
       const dateVal = document.getElementById('adminDateFilter').value;
       const roomVal = document.getElementById('adminRoomFilter').value;
-
-      let query = supabase
-        .from('bookings')
-        .select('user_id, courses(name), rooms(name), booking_date, time_slot, status');
-
+      let query = supabase.from('bookings').select('user_id, courses(name), rooms(name), booking_date, time_slot, status');
       if (dateVal) query = query.eq('booking_date', dateVal);
       if (roomVal) query = query.eq('room_id', roomVal);
-
       const { data } = await query;
       if (!data || data.length === 0) return alert('无数据可导出');
-
       const csv = ['手机/ID,课程,教室,日期,时段,状态'].concat(data.map(r => 
         `${r.user_id},${r.courses.name},${r.rooms.name},${r.booking_date},${r.time_slot},${r.status}`
       )).join('\n');
-
       const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
