@@ -15,7 +15,6 @@
       <h1 class="text-3xl font-bold text-center text-blue-600 mb-2">文化馆预约</h1>
       <p class="text-gray-500 text-center mb-8">免费使用场馆和教室</p>
 
-      <!-- 手机登录 -->
       <div id="phoneLogin">
         <label class="block text-lg mb-2">手机号码</label>
         <input type="tel" id="phoneInput" class="w-full text-lg p-4 border border-gray-300 rounded-xl mb-4" placeholder="输入手机号">
@@ -30,7 +29,6 @@
         <div class="flex-1 border-t border-gray-200"></div>
       </div>
 
-      <!-- 微信登录备选 -->
       <button id="wechatLoginBtn" class="w-full bg-green-500 text-white text-xl font-bold py-4 rounded-xl hover:bg-green-600 transition">微信一键登录</button>
       <p class="text-gray-400 text-sm text-center mt-4">首次登录后自动注册</p>
     </div>
@@ -101,7 +99,6 @@
       return phone.slice(-4);
     }
 
-    // 登录逻辑
     const loginPage = document.getElementById('loginPage');
     const mainPage = document.getElementById('mainPage');
     const adminPage = document.getElementById('adminPage');
