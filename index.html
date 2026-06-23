@@ -134,6 +134,7 @@
     });
 
     function showMain(profile) {
+      currentUser = profile.phone;   // 修复自动登录时 currentUser 为空
       document.getElementById('loginPage').classList.add('hidden');
       document.getElementById('mainPage').classList.remove('hidden');
       document.getElementById('userDisplay').textContent = `${profile.name}（尾号${profile.phone.slice(-4)}）`;
@@ -146,7 +147,8 @@
     // 自动登录
     const saved = localStorage.getItem('currentUser');
     if (saved) {
-      showMain(JSON.parse(saved));
+      const profile = JSON.parse(saved);
+      showMain(profile);
     } else {
       document.getElementById('loginPage').classList.remove('hidden');
     }
@@ -154,6 +156,7 @@
     // 退出
     document.getElementById('logoutBtn').addEventListener('click', () => {
       localStorage.removeItem('currentUser');
+      currentUser = null;
       location.reload();
     });
 
