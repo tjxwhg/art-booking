@@ -121,13 +121,13 @@
     let selectedDate = null;
     let selectedTimeSlot = null;
 
-    // 登录
+    // 登录（仅查询 profiles 表，不涉及任何管理员逻辑）
     const loginBtn = document.getElementById('loginBtn');
     loginBtn.addEventListener('click', async () => {
       const phone = document.getElementById('phoneInput').value.trim();
       if (!/^1[0-9]{10}$/.test(phone)) return alert('请输入正确的手机号');
       const { data } = await supabase.from('profiles').select('phone, name').eq('phone', phone).maybeSingle();
-      if (!data) return alert('该手机号未注册');
+      if (!data) return alert('该手机号未注册，请联系管理员');
       currentUser = data.phone;
       localStorage.setItem('currentUser', JSON.stringify(data));
       showMain(data);
@@ -146,7 +146,8 @@
     // 自动登录
     const saved = localStorage.getItem('currentUser');
     if (saved) {
-      showMain(JSON.parse(saved));
+      const profile = JSON.parse(saved);
+      showMain(profile);
     } else {
       document.getElementById('loginPage').classList.remove('hidden');
     }
@@ -179,7 +180,7 @@
       checkSubmitReady();
     }
 
-    // 加载课程
+    // 加载课程（不绑定教室）
     async function loadCourses() {
       const { data } = await supabase.from('courses').select('name');
       const courses = [...new Set(data.map(c => c.name))];
