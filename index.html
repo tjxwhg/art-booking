@@ -6,10 +6,11 @@
   <title>文化馆场馆预约</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* 古风回字窗格背景 */
     body {
-      background-color: #f5f0e8; /* 仿古宣纸底色 */
-      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="40" height="40" fill="none" stroke="%23c9b896" stroke-width="0.6" opacity="0.3"/><circle cx="20" cy="20" r="8" fill="none" stroke="%23c9b896" stroke-width="0.6" opacity="0.25"/></pattern></defs><rect width="200" height="200" fill="url(%23grid)"/><path d="M40,100 Q60,80 80,100 Q100,120 120,100 Q140,80 160,100" fill="none" stroke="%23b8a07a" stroke-width="1.2" opacity="0.15"/><path d="M40,120 Q60,100 80,120 Q100,140 120,120 Q140,100 160,120" fill="none" stroke="%23b8a07a" stroke-width="1.2" opacity="0.15"/><path d="M100,40 Q120,60 100,80 Q80,100 100,120 Q120,140 100,160" fill="none" stroke="%23b8a07a" stroke-width="1.2" opacity="0.15"/></svg>');
-      background-size: 200px 200px;
+      background-color: #f5f0e8;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect x="2" y="2" width="36" height="36" fill="none" stroke="%23c9b896" stroke-width="1" opacity="0.35"/><rect x="8" y="8" width="24" height="24" fill="none" stroke="%23c9b896" stroke-width="1" opacity="0.35"/><rect x="14" y="14" width="12" height="12" fill="none" stroke="%23c9b896" stroke-width="1" opacity="0.35"/><line x1="20" y1="2" x2="20" y2="8" stroke="%23c9b896" stroke-width="1" opacity="0.35"/><line x1="20" y1="32" x2="20" y2="38" stroke="%23c9b896" stroke-width="1" opacity="0.35"/><line x1="2" y1="20" x2="8" y2="20" stroke="%23c9b896" stroke-width="1" opacity="0.35"/><line x1="32" y1="20" x2="38" y2="20" stroke="%23c9b896" stroke-width="1" opacity="0.35"/></svg>');
+      background-size: 40px 40px;
       font-family: "Microsoft YaHei", "苹方", sans-serif;
     }
     .card {
@@ -64,19 +65,22 @@
       <div id="courseList" class="grid grid-cols-2 gap-4"></div>
     </div>
 
-    <!-- 3. 选择老师 -->
+    <!-- 3. 选择老师（自行填写） -->
     <div class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">3️⃣ 选择老师</h2>
       <div class="flex flex-col space-y-3">
         <label class="flex items-center text-lg">
           <input type="radio" name="teacherChoice" value="辅导老师" class="mr-3 h-5 w-5"> 辅导老师
         </label>
+        <div id="selfTeacherInput" class="hidden ml-8">
+          <input type="text" id="selfTeacherName" class="w-full text-lg p-3 border border-gray-300 rounded-xl" placeholder="请输入辅导老师姓名">
+        </div>
         <label class="flex items-center text-lg">
           <input type="radio" name="teacherChoice" value="预约老师" class="mr-3 h-5 w-5"> 预约老师
         </label>
-        <select id="proTeacherSelect" class="hidden text-lg p-3 border rounded-xl mt-2">
-          <option value="">-- 选择专业老师 --</option>
-        </select>
+        <div id="proTeacherInput" class="hidden ml-8">
+          <input type="text" id="proTeacherName" class="w-full text-lg p-3 border border-gray-300 rounded-xl" placeholder="请输入预约的专业老师姓名">
+        </div>
       </div>
     </div>
 
@@ -129,13 +133,11 @@
       const { data } = await supabase.from('profiles').select('phone, name').eq('phone', phone).maybeSingle();
       if (!data) return alert('该手机号未注册，请联系管理员');
       currentUser = data.phone;
-      // 存储完整信息
       localStorage.setItem('currentUser', JSON.stringify(data));
       showMain(data);
     });
 
     function showMain(profile) {
-      // 如果 profile 不完整，清除存储并返回登录
       if (!profile || !profile.phone || !profile.name) {
         localStorage.removeItem('currentUser');
         currentUser = null;
@@ -149,11 +151,10 @@
       document.getElementById('userDisplay').textContent = `${profile.name}（尾号${profile.phone.slice(-4)}）`;
       loadRooms();
       loadCourses();
-      loadProTeachers();
       loadMyBookings();
     }
 
-    // 自动登录（增强校验）
+    // 自动登录
     const saved = localStorage.getItem('currentUser');
     if (saved) {
       try {
@@ -161,7 +162,6 @@
         if (profile && profile.phone && profile.name) {
           showMain(profile);
         } else {
-          // 数据无效，清除
           localStorage.removeItem('currentUser');
           document.getElementById('loginPage').classList.remove('hidden');
         }
@@ -225,27 +225,42 @@
       checkSubmitReady();
     }
 
-    // 专业老师下拉
-    async function loadProTeachers() {
-      const { data } = await supabase.from('courses').select('teacher');
-      const teachers = [...new Set(data.map(c => c.teacher).filter(Boolean))];
-      const select = document.getElementById('proTeacherSelect');
-      select.innerHTML = '<option value="">-- 选择专业老师 --</option>' +
-        teachers.map(t => `<option value="${t}">${t}</option>`).join('');
-    }
+    // 老师选择逻辑（自定义输入）
+    const teacherRadios = document.querySelectorAll('input[name="teacherChoice"]');
+    const selfInputDiv = document.getElementById('selfTeacherInput');
+    const proInputDiv = document.getElementById('proTeacherInput');
+    const selfTeacherInput = document.getElementById('selfTeacherName');
+    const proTeacherInput = document.getElementById('proTeacherName');
 
-    document.querySelectorAll('input[name="teacherChoice"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        const val = e.target.value;
-        document.getElementById('proTeacherSelect').classList.toggle('hidden', val !== '预约老师');
-        if (val === '辅导老师') selectedTeacher = '辅导老师';
-        else selectedTeacher = document.getElementById('proTeacherSelect').value;
+    teacherRadios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        if (radio.value === '辅导老师') {
+          selfInputDiv.classList.remove('hidden');
+          proInputDiv.classList.add('hidden');
+          proTeacherInput.value = ''; // 清空另一个输入
+          selectedTeacher = selfTeacherInput.value.trim();
+        } else {
+          proInputDiv.classList.remove('hidden');
+          selfInputDiv.classList.add('hidden');
+          selfTeacherInput.value = '';
+          selectedTeacher = proTeacherInput.value.trim();
+        }
         checkSubmitReady();
       });
     });
-    document.getElementById('proTeacherSelect').addEventListener('change', function() {
-      selectedTeacher = this.value;
-      checkSubmitReady();
+
+    // 监听两个输入框的变化
+    selfTeacherInput.addEventListener('input', () => {
+      if (document.querySelector('input[name="teacherChoice"]:checked')?.value === '辅导老师') {
+        selectedTeacher = selfTeacherInput.value.trim();
+        checkSubmitReady();
+      }
+    });
+    proTeacherInput.addEventListener('input', () => {
+      if (document.querySelector('input[name="teacherChoice"]:checked')?.value === '预约老师') {
+        selectedTeacher = proTeacherInput.value.trim();
+        checkSubmitReady();
+      }
     });
 
     // 人数、日期
@@ -291,9 +306,15 @@
 
     function checkSubmitReady() {
       const teacherRadio = document.querySelector('input[name="teacherChoice"]:checked');
-      if (!teacherRadio) selectedTeacher = null;
-      else if (teacherRadio.value === '辅导老师') selectedTeacher = '辅导老师';
-      else selectedTeacher = document.getElementById('proTeacherSelect').value;
+      if (teacherRadio) {
+        if (teacherRadio.value === '辅导老师') {
+          selectedTeacher = selfTeacherInput.value.trim();
+        } else {
+          selectedTeacher = proTeacherInput.value.trim();
+        }
+      } else {
+        selectedTeacher = null;
+      }
 
       const participants = parseInt(document.getElementById('participantsInput').value);
       document.getElementById('submitBooking').disabled = !(selectedRoom && selectedCourse && selectedTeacher && participants > 0 && selectedDate && selectedTimeSlot);
@@ -374,8 +395,6 @@
         `;
       }).join('');
     }
-
-    // 取消功能已移除，仅保留前端显示，取消需联系管理员
   </script>
 </body>
 </html>
