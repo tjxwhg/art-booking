@@ -129,12 +129,21 @@
       const { data } = await supabase.from('profiles').select('phone, name').eq('phone', phone).maybeSingle();
       if (!data) return alert('该手机号未注册，请联系管理员');
       currentUser = data.phone;
+      // 存储完整信息
       localStorage.setItem('currentUser', JSON.stringify(data));
       showMain(data);
     });
 
     function showMain(profile) {
-      currentUser = profile.phone;   // 修复自动登录时 currentUser 为空
+      // 如果 profile 不完整，清除存储并返回登录
+      if (!profile || !profile.phone || !profile.name) {
+        localStorage.removeItem('currentUser');
+        currentUser = null;
+        document.getElementById('mainPage').classList.add('hidden');
+        document.getElementById('loginPage').classList.remove('hidden');
+        return;
+      }
+      currentUser = profile.phone;
       document.getElementById('loginPage').classList.add('hidden');
       document.getElementById('mainPage').classList.remove('hidden');
       document.getElementById('userDisplay').textContent = `${profile.name}（尾号${profile.phone.slice(-4)}）`;
@@ -144,11 +153,22 @@
       loadMyBookings();
     }
 
-    // 自动登录
+    // 自动登录（增强校验）
     const saved = localStorage.getItem('currentUser');
     if (saved) {
-      const profile = JSON.parse(saved);
-      showMain(profile);
+      try {
+        const profile = JSON.parse(saved);
+        if (profile && profile.phone && profile.name) {
+          showMain(profile);
+        } else {
+          // 数据无效，清除
+          localStorage.removeItem('currentUser');
+          document.getElementById('loginPage').classList.remove('hidden');
+        }
+      } catch (e) {
+        localStorage.removeItem('currentUser');
+        document.getElementById('loginPage').classList.remove('hidden');
+      }
     } else {
       document.getElementById('loginPage').classList.remove('hidden');
     }
@@ -279,13 +299,13 @@
       document.getElementById('submitBooking').disabled = !(selectedRoom && selectedCourse && selectedTeacher && participants > 0 && selectedDate && selectedTimeSlot);
     }
 
-    // 提交预约（增加“一人一约”限制）
+    // 提交预约（一人一约）
     document.getElementById('submitBooking').addEventListener('click', async () => {
       if (!selectedRoom || !selectedCourse || !selectedTeacher || !selectedDate || !selectedTimeSlot) return;
       const participants = parseInt(document.getElementById('participantsInput').value);
       if (!participants || participants < 1) return alert('请填写参加人数');
 
-      // 检查该用户是否已有有效预约（状态为 confirmed，且日期 >= 今天）
+      // 检查该用户是否已有有效预约
       const today = new Date().toISOString().slice(0, 10);
       const { data: existing } = await supabase
         .from('bookings')
@@ -296,7 +316,7 @@
         .maybeSingle();
 
       if (existing) {
-        return alert('您已有有效预约（日期≥今天），请先取消现有预约后再重新预约。');
+        return alert('您已有有效预约（日期≥今天），请先联系管理员取消后再重新预约。');
       }
 
       const { error } = await supabase.from('bookings').insert({
@@ -320,7 +340,7 @@
       }
     });
 
-    // 我的预约
+    // 我的预约（不显示取消按钮）
     async function loadMyBookings() {
       const container = document.getElementById('myBookings');
       container.classList.remove('hidden');
@@ -335,8 +355,10 @@
         return;
       }
 
+      const today = new Date().toISOString().slice(0, 10);
       container.innerHTML = data.map(b => {
         const [course, teacher] = (b.teacher_choice || '|').split('|');
+        const isActive = b.status === 'confirmed' && b.booking_date >= today;
         return `
           <div class="flex justify-between items-center border-b p-3">
             <div>
@@ -344,8 +366,8 @@
               <div class="text-gray-600">${b.booking_date} ${b.time_slot} · ${b.participants}人 · 老师：${teacher || '无'}</div>
             </div>
             <div>
-              ${b.status === 'confirmed' && b.booking_date >= new Date().toISOString().slice(0,10) ? 
-                `<button onclick="cancelBooking(${b.id})" class="text-red-500 underline">取消</button>` : 
+              ${isActive ? 
+                '<span class="text-green-600 font-bold">已预约</span>' : 
                 `<span class="text-gray-400">${b.status}</span>`}
             </div>
           </div>
@@ -353,11 +375,7 @@
       }).join('');
     }
 
-    window.cancelBooking = async (id) => {
-      if (!confirm('确定取消？')) return;
-      await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', id).eq('user_id', currentUser);
-      loadMyBookings();
-    };
+    // 取消功能已移除，仅保留前端显示，取消需联系管理员
   </script>
 </body>
 </html>
