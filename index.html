@@ -5,177 +5,287 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>文化馆场馆预约</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #f5f0e8;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M20 20 L80 20 L80 80 L20 80 Z" fill="none" stroke="%23d4c5a9" stroke-width="0.5" opacity="0.3"/><circle cx="50" cy="50" r="30" fill="none" stroke="%23c9b896" stroke-width="0.3" opacity="0.2"/></svg>');
+      background-size: 200px 200px;
+      font-family: "Microsoft YaHei", "苹方", sans-serif;
+    }
+    .card {
+      background-color: rgba(255, 252, 245, 0.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid #d4c5a9;
+      border-radius: 1.2rem;
+    }
+    .btn-primary {
+      background-color: #8b4513;
+      color: white;
+      border-radius: 0.8rem;
+      font-weight: bold;
+    }
+    .btn-primary:hover {
+      background-color: #a0522d;
+    }
+    h1, h2, h3 {
+      color: #5c3d2e;
+      font-family: "KaiTi", "楷体", "STKaiti", serif;
+    }
+    .highlight-card {
+      border: 2px solid #8b4513;
+      background-color: rgba(139,69,19,0.08);
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <!-- 登录界面 -->
+<body class="min-h-screen">
+
+  <!-- ==================== 登录界面 ==================== -->
   <div id="loginPage" class="max-w-md mx-auto p-6 pt-20">
-    <div class="bg-white rounded-2xl shadow-lg p-8">
-      <h1 class="text-3xl font-bold text-center text-blue-600 mb-2">文化馆预约</h1>
+    <div class="card shadow-lg p-8">
+      <h1 class="text-3xl font-bold text-center mb-2">文化馆预约</h1>
       <p class="text-gray-500 text-center mb-8">免费使用场馆和教室</p>
-      <div id="phoneLogin">
+      <div>
         <label class="block text-lg mb-2">手机号码</label>
         <input type="tel" id="phoneInput" class="w-full text-lg p-4 border border-gray-300 rounded-xl mb-4" placeholder="输入手机号">
-        <button id="sendOtpBtn" class="w-full bg-blue-600 text-white text-xl font-bold py-4 rounded-xl hover:bg-blue-700 transition">发送验证码</button>
-        <input type="text" id="otpInput" class="w-full text-lg p-4 border border-gray-300 rounded-xl mt-4 hidden" placeholder="输入验证码">
-        <button id="verifyOtpBtn" class="w-full bg-green-600 text-white text-xl font-bold py-4 rounded-xl mt-4 hidden hover:bg-green-700 transition">验证登录</button>
+        <button id="loginBtn" class="w-full btn-primary text-xl py-4 rounded-xl transition">登录</button>
       </div>
-      <div class="flex items-center my-6">
-        <div class="flex-1 border-t border-gray-200"></div>
-        <span class="px-4 text-gray-400">或</span>
-        <div class="flex-1 border-t border-gray-200"></div>
-      </div>
-      <button id="wechatLoginBtn" class="w-full bg-green-500 text-white text-xl font-bold py-4 rounded-xl hover:bg-green-600 transition">微信一键登录</button>
-      <p class="text-gray-400 text-sm text-center mt-4">首次登录后自动注册</p>
+      <p class="text-gray-400 text-sm text-center mt-4">仅限已注册用户，请联系管理员注册</p>
     </div>
   </div>
-  <!-- 主界面（预约） -->
+
+  <!-- ==================== 主界面（预约） ==================== -->
   <div id="mainPage" class="max-w-2xl mx-auto p-4 hidden">
     <div class="flex justify-between items-center mb-6">
       <div class="text-lg">👤 <span id="userDisplay" class="font-bold"></span></div>
       <button id="logoutBtn" class="text-red-500 underline">退出</button>
     </div>
-    <div class="bg-white rounded-2xl shadow p-6 mb-4">
-      <h2 class="text-2xl font-bold mb-4">1️⃣ 选择课程</h2>
-      <div id="courseList" class="grid grid-cols-2 gap-4"></div>
+
+    <!-- 选择教室 -->
+    <div class="card shadow p-6 mb-4">
+      <h2 class="text-2xl font-bold mb-4">1️⃣ 选择教室</h2>
+      <div id="roomList" class="grid grid-cols-2 gap-4"></div>
     </div>
-    <div class="bg-white rounded-2xl shadow p-6 mb-4">
+
+    <!-- 该教室的课程与老师 -->
+    <div class="card shadow p-6 mb-4 hidden" id="courseInfo">
+      <h2 class="text-2xl font-bold mb-4">📖 课程与老师</h2>
+      <div id="courseDetail" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <!-- 参加人数 -->
+    <div class="card shadow p-6 mb-4">
+      <h2 class="text-2xl font-bold mb-4">👥 参加人数 <span class="text-red-500">*</span></h2>
+      <input type="number" id="participantsInput" class="w-full text-xl p-4 border border-gray-300 rounded-xl" min="1" value="1" placeholder="请填写参加人数">
+    </div>
+
+    <!-- 选择日期 -->
+    <div class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">2️⃣ 选择日期</h2>
       <input type="date" id="datePicker" class="w-full text-xl p-4 border border-gray-300 rounded-xl">
     </div>
-    <div class="bg-white rounded-2xl shadow p-6 mb-4">
+
+    <!-- 选择时段 -->
+    <div class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">3️⃣ 选择时段</h2>
       <div id="timeSlots" class="grid grid-cols-2 gap-3"></div>
     </div>
-    <button id="submitBooking" class="w-full bg-blue-600 text-white text-2xl font-bold py-6 rounded-2xl hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>立即预约</button>
+
+    <!-- 预约按钮 -->
+    <button id="submitBooking" class="w-full btn-primary text-2xl py-6 rounded-2xl transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>立即预约</button>
+
+    <!-- 我的预约 -->
     <div class="mt-8">
       <h2 class="text-2xl font-bold mb-4" onclick="document.getElementById('myBookings').classList.toggle('hidden')" role="button">📋 我的预约 ▼</h2>
-      <div id="myBookings" class="bg-white rounded-2xl shadow p-4 hidden"></div>
+      <div id="myBookings" class="card shadow p-4 hidden"></div>
     </div>
   </div>
-  <!-- 管理后台 -->
+
+  <!-- ==================== 管理后台 ==================== -->
   <div id="adminPage" class="max-w-6xl mx-auto p-4 hidden">
     <h1 class="text-3xl font-bold mb-6">📊 管理后台</h1>
-    <div class="flex flex-wrap gap-4 mb-6">
-      <input type="date" id="adminDateFilter" class="text-xl p-3 border rounded-xl">
-      <select id="adminRoomFilter" class="text-xl p-3 border rounded-xl">
-        <option value="">全部教室</option>
-      </select>
-      <button id="exportCsv" class="bg-green-600 text-white text-xl font-bold px-6 py-3 rounded-xl">导出CSV</button>
+
+    <!-- 用户注册表单 -->
+    <div class="card shadow p-6 mb-8">
+      <h2 class="text-2xl font-bold mb-4">➕ 注册新用户</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="text" id="regName" class="text-lg p-3 border rounded-xl" placeholder="姓名 *">
+        <input type="tel" id="regPhone" class="text-lg p-3 border rounded-xl" placeholder="手机号 *">
+        <input type="text" id="regTeam" class="text-lg p-3 border rounded-xl" placeholder="队伍名称">
+        <input type="text" id="regHobby" class="text-lg p-3 border rounded-xl" placeholder="爱好">
+      </div>
+      <button id="registerUserBtn" class="mt-4 bg-green-700 text-white text-lg font-bold py-3 px-6 rounded-xl hover:bg-green-800">注册</button>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full bg-white rounded-2xl shadow overflow-hidden">
+
+    <!-- 预约筛选与导出 -->
+    <div class="card shadow p-6 mb-8">
+      <div class="flex flex-wrap gap-4 mb-4 items-end">
+        <div>
+          <label class="block text-sm mb-1">开始日期</label>
+          <input type="date" id="adminStartDate" class="text-lg p-3 border rounded-xl">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">结束日期</label>
+          <input type="date" id="adminEndDate" class="text-lg p-3 border rounded-xl">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">教室</label>
+          <select id="adminRoomFilter" class="text-lg p-3 border rounded-xl">
+            <option value="">全部教室</option>
+          </select>
+        </div>
+        <button id="adminFilterBtn" class="btn-primary px-6 py-3 text-lg">查询</button>
+        <button id="exportCsv" class="bg-blue-700 text-white text-lg font-bold px-6 py-3 rounded-xl">导出CSV</button>
+      </div>
+    </div>
+
+    <!-- 预约列表 -->
+    <div class="card shadow overflow-x-auto">
+      <table class="w-full text-left">
         <thead class="bg-gray-100">
-          <tr><th class="p-3 text-left">姓名/手机</th><th class="p-3 text-left">课程</th><th class="p-3 text-left">教室</th><th class="p-3 text-left">日期</th><th class="p-3 text-left">时段</th><th class="p-3 text-left">状态</th></tr>
+          <tr>
+            <th class="p-3">姓名/手机</th><th class="p-3">教室</th><th class="p-3">课程</th><th class="p-3">日期</th><th class="p-3">时段</th><th class="p-3">人数</th><th class="p-3">状态</th><th class="p-3">操作</th>
+          </tr>
         </thead>
         <tbody id="adminTableBody"></tbody>
       </table>
     </div>
   </div>
+
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    // ========== Supabase 客户端 ==========
     const SUPABASE_URL = 'https://aermnnksvhezfykxefla.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_l9yA9MKkAqT_4gIrgoCriA_kCDlLrIR';
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // 管理员专用 service_role key（仅用于注册用户等安全操作）
+    const SERVICE_ROLE_KEY = 'sb_secret_YOUR_SERVICE_ROLE_KEY'; // ⚠️ 请替换为你的真实 service_role key（在 Supabase Setting > API 中获取）
 
-    let currentUser = null;
-    let selectedCourse = null;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+    // ========== 全局状态 ==========
+    let currentUser = null;          // 存储手机号
+    let selectedRoom = null;
     let selectedDate = null;
     let selectedTimeSlot = null;
 
-    window.cancelBooking = async function(bookingId) {
-      if (!confirm('确定要取消这个预约吗？')) return;
-      const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
-      if (error) alert('取消失败');
-      else loadMyBookings();
-    };
-
+    // ========== 工具函数 ==========
     function formatPhone(phone) {
       if (!phone) return '';
       return phone.slice(-4);
     }
 
+    // ========== 登录逻辑（简化：查询 profiles 表，存在即登录） ==========
     const loginPage = document.getElementById('loginPage');
     const mainPage = document.getElementById('mainPage');
     const adminPage = document.getElementById('adminPage');
     const phoneInput = document.getElementById('phoneInput');
-    const otpInput = document.getElementById('otpInput');
-    const sendOtpBtn = document.getElementById('sendOtpBtn');
-    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const loginBtn = document.getElementById('loginBtn');
 
-    sendOtpBtn.addEventListener('click', async () => {
+    loginBtn.addEventListener('click', async () => {
       const phone = phoneInput.value.trim();
-      if (!/^1[0-9]{10}$/.test(phone)) { alert('请输入正确的11位手机号码'); return; }
-      const { error } = await supabase.auth.signInWithOtp({ phone });
-      if (error) { alert('发送失败：' + error.message); }
-      else { alert('验证码已发送，请注意查收'); otpInput.classList.remove('hidden'); verifyOtpBtn.classList.remove('hidden'); }
+      if (!/^1[0-9]{10}$/.test(phone)) {
+        alert('请输入正确的11位手机号码');
+        return;
+      }
+      // 查询 profiles 表是否存在该手机号
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone, name')
+        .eq('phone', phone)
+        .maybeSingle();
+      if (error) {
+        alert('系统错误，请稍后再试');
+        return;
+      }
+      if (!data) {
+        alert('该手机号未注册，请联系管理员');
+        return;
+      }
+      currentUser = data.phone;
+      localStorage.setItem('currentUser', data.phone);
+      showMainPage(data.phone, data.name);
     });
 
-    verifyOtpBtn.addEventListener('click', async () => {
-      const phone = phoneInput.value.trim();
-      const token = otpInput.value.trim();
-      if (!token) return alert('请输入验证码');
-      const { data, error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
-      if (error) return alert('验证失败：' + error.message);
-      currentUser = data.user;
-      afterLogin();
-    });
-
-    document.getElementById('wechatLoginBtn').addEventListener('click', async () => {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'wechat',
-        options: { redirectTo: window.location.origin + window.location.pathname }
-      });
-      if (error) alert('微信登录失败：' + error.message);
-    });
-
-    async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) { currentUser = session.user; afterLogin(); }
-      else {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('key') === 'admin123') { showAdmin(); }
-        else { loginPage.classList.remove('hidden'); }
+    // 检查是否已登录
+    const savedPhone = localStorage.getItem('currentUser');
+    if (savedPhone) {
+      // 快速恢复
+      const { data } = await supabase.from('profiles').select('name').eq('phone', savedPhone).maybeSingle();
+      if (data) {
+        currentUser = savedPhone;
+        showMainPage(savedPhone, data.name);
+      } else {
+        localStorage.removeItem('currentUser');
+        loginPage.classList.remove('hidden');
+      }
+    } else {
+      // 检查是否为管理后台
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('key') === 'admin123') {
+        showAdminPage();
+      } else {
+        loginPage.classList.remove('hidden');
       }
     }
 
-    function afterLogin() {
+    function showMainPage(phone, name) {
       loginPage.classList.add('hidden');
       mainPage.classList.remove('hidden');
-      document.getElementById('userDisplay').textContent = '尾号' + formatPhone(currentUser.phone);
-      loadCourses();
+      adminPage.classList.add('hidden');
+      document.getElementById('userDisplay').textContent = name + ' (尾号' + formatPhone(phone) + ')';
+      loadRooms();
       loadMyBookings();
     }
 
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await supabase.auth.signOut();
+    // 退出
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('currentUser');
       location.reload();
     });
 
-    async function loadCourses() {
-      const { data } = await supabase.from('courses').select('*, rooms(name)');
-      const container = document.getElementById('courseList');
+    // ========== 预约主界面逻辑 ==========
+    async function loadRooms() {
+      const { data: rooms } = await supabase.from('rooms').select('*');
+      const { data: courses } = await supabase.from('courses').select('*, rooms(name)');
+      const container = document.getElementById('roomList');
       container.innerHTML = '';
-      data.forEach(c => {
+      rooms.forEach(room => {
+        const roomCourses = courses.filter(c => c.room_id === room.id);
         const card = document.createElement('div');
-        card.className = 'p-4 border-2 rounded-xl text-center cursor-pointer text-lg font-medium';
-        card.textContent = c.name + ' (' + c.rooms.name + ')';
-        card.dataset.id = c.id;
-        card.addEventListener('click', () => selectCourse(card, c));
+        card.className = 'p-4 border-2 rounded-xl cursor-pointer text-lg font-medium card';
+        card.innerHTML = `
+          <div class="font-bold text-xl">${room.name}</div>
+          <div class="text-sm text-gray-600 mt-2">
+            ${roomCourses.length ? roomCourses.map(c => `${c.name} ${c.teacher ? '· '+c.teacher : ''}`).join('<br>') : '暂无课程'}
+          </div>
+        `;
+        card.dataset.roomId = room.id;
+        card.addEventListener('click', () => selectRoom(card, room, roomCourses));
         container.appendChild(card);
       });
     }
 
-    function selectCourse(element, course) {
-      document.querySelectorAll('#courseList div').forEach(el => el.classList.remove('border-blue-500','bg-blue-50'));
-      element.classList.add('border-blue-500','bg-blue-50');
-      selectedCourse = course;
+    function selectRoom(element, room, courses) {
+      document.querySelectorAll('#roomList div').forEach(el => el.classList.remove('highlight-card'));
+      element.classList.add('highlight-card');
+      selectedRoom = room;
+      // 显示课程信息
+      const infoDiv = document.getElementById('courseInfo');
+      const detailDiv = document.getElementById('courseDetail');
+      if (courses.length) {
+        detailDiv.innerHTML = courses.map(c => `<span class="bg-gray-100 px-3 py-1 rounded-full text-sm">${c.name} ${c.teacher ? '· '+c.teacher : ''}</span>`).join('');
+        infoDiv.classList.remove('hidden');
+      } else {
+        infoDiv.classList.add('hidden');
+      }
       checkSubmitReady();
       if (selectedDate) loadTimeSlots();
     }
 
     document.getElementById('datePicker').addEventListener('change', function(e) {
       selectedDate = e.target.value;
-      if (selectedCourse) loadTimeSlots();
+      if (selectedRoom) loadTimeSlots();
       checkSubmitReady();
     });
 
@@ -183,12 +293,18 @@
       const slots = ['08:00-10:00','10:00-12:00','14:00-16:00','16:00-18:00','18:00-20:00'];
       const container = document.getElementById('timeSlots');
       container.innerHTML = '';
-      if (!selectedCourse || !selectedDate) return;
-      const roomId = selectedCourse.room_id;
+      if (!selectedRoom || !selectedDate) return;
+
+      const roomId = selectedRoom.id;
       const { data: occupied } = await supabase
-        .from('bookings').select('time_slot')
-        .eq('room_id', roomId).eq('booking_date', selectedDate).eq('status','confirmed');
+        .from('bookings')
+        .select('time_slot')
+        .eq('room_id', roomId)
+        .eq('booking_date', selectedDate)
+        .eq('status', 'confirmed');
+
       const occupiedSlots = occupied ? occupied.map(b => b.time_slot) : [];
+
       slots.forEach(slot => {
         const btn = document.createElement('button');
         const isFull = occupiedSlots.includes(slot);
@@ -197,8 +313,8 @@
         btn.disabled = isFull;
         if (!isFull) {
           btn.addEventListener('click', () => {
-            document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600','bg-blue-50'));
-            btn.classList.add('border-blue-600','bg-blue-50');
+            document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600', 'bg-blue-50'));
+            btn.classList.add('border-blue-600', 'bg-blue-50');
             selectedTimeSlot = slot;
             checkSubmitReady();
           });
@@ -208,59 +324,78 @@
     }
 
     function checkSubmitReady() {
-      document.getElementById('submitBooking').disabled = !(selectedCourse && selectedDate && selectedTimeSlot);
+      const participants = document.getElementById('participantsInput').value;
+      document.getElementById('submitBooking').disabled = !(selectedRoom && selectedDate && selectedTimeSlot && participants > 0);
     }
 
+    document.getElementById('participantsInput').addEventListener('input', checkSubmitReady);
+
+    // 提交预约
     document.getElementById('submitBooking').addEventListener('click', async () => {
-      if (!selectedCourse || !selectedDate || !selectedTimeSlot) return;
-      const { data: conflict } = await supabase
-        .from('bookings').select('id')
-        .eq('room_id', selectedCourse.room_id).eq('booking_date', selectedDate)
-        .eq('time_slot', selectedTimeSlot).eq('status','confirmed').maybeSingle();
-      if (conflict) {
-        alert('该时段刚刚被其他人预约了，请刷新后重试');
-        loadTimeSlots();
-        selectedTimeSlot = null;
-        checkSubmitReady();
+      if (!selectedRoom || !selectedDate || !selectedTimeSlot) return;
+      const participants = parseInt(document.getElementById('participantsInput').value);
+      if (!participants || participants < 1) {
+        alert('请填写参加人数');
         return;
       }
+
+      const { data: conflict } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('room_id', selectedRoom.id)
+        .eq('booking_date', selectedDate)
+        .eq('time_slot', selectedTimeSlot)
+        .eq('status', 'confirmed')
+        .maybeSingle();
+
+      if (conflict) {
+        alert('该时段刚刚被预约，请刷新重试');
+        loadTimeSlots();
+        return;
+      }
+
       const { error } = await supabase.from('bookings').insert({
-        user_id: currentUser.id,
-        course_id: selectedCourse.id,
-        room_id: selectedCourse.room_id,
+        user_id: currentUser,
+        room_id: selectedRoom.id,
+        course_id: null, // 课程可选
         booking_date: selectedDate,
         time_slot: selectedTimeSlot,
+        participants: participants,
         status: 'confirmed'
       });
+
       if (error) {
-        if (error.code === '23505') { alert('该时段已经被预约，请选择其他时段'); }
-        else { alert('预约失败：' + error.message); }
-        loadTimeSlots();
+        alert('预约失败：' + error.message);
       } else {
         alert('预约成功！');
         selectedTimeSlot = null;
         loadTimeSlots();
         loadMyBookings();
-        document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600','bg-blue-50'));
+        document.querySelectorAll('#timeSlots button').forEach(b => b.classList.remove('border-blue-600', 'bg-blue-50'));
         document.getElementById('submitBooking').disabled = true;
       }
     });
 
+    // 我的预约
     async function loadMyBookings() {
       const container = document.getElementById('myBookings');
       container.classList.remove('hidden');
       const { data } = await supabase
-        .from('bookings').select('id, courses(name), rooms(name), booking_date, time_slot, status')
-        .eq('user_id', currentUser.id).order('booking_date', { ascending: false });
+        .from('bookings')
+        .select('id, rooms(name), booking_date, time_slot, participants, status')
+        .eq('user_id', currentUser)
+        .order('booking_date', { ascending: false });
+
       if (!data || data.length === 0) {
         container.innerHTML = '<p class="text-gray-500 p-4">暂无预约记录</p>';
         return;
       }
+
       container.innerHTML = data.map(b => `
         <div class="flex justify-between items-center border-b p-3">
           <div>
-            <div class="font-bold text-lg">${b.courses.name} (${b.rooms.name})</div>
-            <div class="text-gray-600">${b.booking_date} ${b.time_slot}</div>
+            <div class="font-bold text-lg">${b.rooms.name}</div>
+            <div class="text-gray-600">${b.booking_date} ${b.time_slot} · ${b.participants}人</div>
           </div>
           <div>
             ${b.status === 'confirmed' && b.booking_date >= new Date().toISOString().slice(0,10) ? 
@@ -271,7 +406,15 @@
       `).join('');
     }
 
-    function showAdmin() {
+    window.cancelBooking = async function(bookingId) {
+      if (!confirm('确定取消？')) return;
+      const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
+      if (error) alert('取消失败');
+      else loadMyBookings();
+    };
+
+    // ==================== 管理后台逻辑 ====================
+    function showAdminPage() {
       loginPage.classList.add('hidden');
       mainPage.classList.add('hidden');
       adminPage.classList.remove('hidden');
@@ -279,45 +422,92 @@
     }
 
     async function loadAdminData() {
+      // 填充教室筛选
       const { data: rooms } = await supabase.from('rooms').select('*');
       const roomFilter = document.getElementById('adminRoomFilter');
       roomFilter.innerHTML = '<option value="">全部教室</option>' + rooms.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
-      await filterAdmin();
+      // 初始加载全部预约
+      fetchAdminBookings();
     }
 
-    async function filterAdmin() {
-      const dateVal = document.getElementById('adminDateFilter').value;
-      const roomVal = document.getElementById('adminRoomFilter').value;
-      let query = supabase.from('bookings').select('*, courses(name), rooms(name)').order('booking_date', { ascending: false });
-      if (dateVal) query = query.eq('booking_date', dateVal);
-      if (roomVal) query = query.eq('room_id', roomVal);
+    async function fetchAdminBookings() {
+      const startDate = document.getElementById('adminStartDate').value;
+      const endDate = document.getElementById('adminEndDate').value;
+      const roomId = document.getElementById('adminRoomFilter').value;
+
+      let query = supabase.from('bookings').select('*, rooms(name)').order('booking_date', { ascending: false });
+      if (startDate) query = query.gte('booking_date', startDate);
+      if (endDate) query = query.lte('booking_date', endDate);
+      if (roomId) query = query.eq('room_id', roomId);
+
       const { data } = await query;
       const tbody = document.getElementById('adminTableBody');
       tbody.innerHTML = data.map(b => `
         <tr class="border-b">
-          <td class="p-3">用户ID: ${b.user_id.slice(-8)}</td>
-          <td class="p-3">${b.courses.name}</td>
+          <td class="p-3">${b.user_id}</td>
           <td class="p-3">${b.rooms.name}</td>
+          <td class="p-3">${b.course_id || '-'}</td>
           <td class="p-3">${b.booking_date}</td>
           <td class="p-3">${b.time_slot}</td>
+          <td class="p-3">${b.participants}</td>
           <td class="p-3">${b.status}</td>
+          <td class="p-3">
+            <button onclick="adminCancelBooking(${b.id})" class="text-red-500 underline mr-2">取消</button>
+            <button onclick="adminDeleteBooking(${b.id})" class="text-red-700 underline">删除</button>
+          </td>
         </tr>
       `).join('');
     }
 
-    document.getElementById('adminDateFilter').addEventListener('change', filterAdmin);
-    document.getElementById('adminRoomFilter').addEventListener('change', filterAdmin);
+    document.getElementById('adminFilterBtn').addEventListener('click', fetchAdminBookings);
 
+    // 管理员取消/删除预约
+    window.adminCancelBooking = async (id) => {
+      if (!confirm('确认取消该预约？')) return;
+      await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', id);
+      fetchAdminBookings();
+    };
+    window.adminDeleteBooking = async (id) => {
+      if (!confirm('确认永久删除该预约？')) return;
+      await supabase.from('bookings').delete().eq('id', id);
+      fetchAdminBookings();
+    };
+
+    // 注册用户
+    document.getElementById('registerUserBtn').addEventListener('click', async () => {
+      const name = document.getElementById('regName').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
+      const team = document.getElementById('regTeam').value.trim();
+      const hobby = document.getElementById('regHobby').value.trim();
+      if (!name || !phone) return alert('姓名和手机号必填');
+      // 使用 service_role 客户端插入
+      const { error } = await adminSupabase.from('profiles').insert({ name, phone, team, hobby });
+      if (error) {
+        alert('注册失败：' + error.message);
+      } else {
+        alert('注册成功！');
+        document.getElementById('regName').value = '';
+        document.getElementById('regPhone').value = '';
+        document.getElementById('regTeam').value = '';
+        document.getElementById('regHobby').value = '';
+      }
+    });
+
+    // 导出 CSV（按当前筛选）
     document.getElementById('exportCsv').addEventListener('click', async () => {
-      const dateVal = document.getElementById('adminDateFilter').value;
-      const roomVal = document.getElementById('adminRoomFilter').value;
-      let query = supabase.from('bookings').select('user_id, courses(name), rooms(name), booking_date, time_slot, status');
-      if (dateVal) query = query.eq('booking_date', dateVal);
-      if (roomVal) query = query.eq('room_id', roomVal);
+      const startDate = document.getElementById('adminStartDate').value;
+      const endDate = document.getElementById('adminEndDate').value;
+      const roomId = document.getElementById('adminRoomFilter').value;
+
+      let query = supabase.from('bookings').select('user_id, rooms(name), booking_date, time_slot, participants, status');
+      if (startDate) query = query.gte('booking_date', startDate);
+      if (endDate) query = query.lte('booking_date', endDate);
+      if (roomId) query = query.eq('room_id', roomId);
+
       const { data } = await query;
       if (!data || data.length === 0) return alert('无数据可导出');
-      const csv = ['手机/ID,课程,教室,日期,时段,状态'].concat(data.map(r => 
-        `${r.user_id},${r.courses.name},${r.rooms.name},${r.booking_date},${r.time_slot},${r.status}`
+      const csv = ['手机号,教室,日期,时段,人数,状态'].concat(data.map(r => 
+        `${r.user_id},${r.rooms.name},${r.booking_date},${r.time_slot},${r.participants},${r.status}`
       )).join('\n');
       const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
       const url = URL.createObjectURL(blob);
@@ -327,7 +517,11 @@
       a.click();
     });
 
-    checkSession();
+    // 页面加载时判断路由
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('key') === 'admin123') {
+      showAdminPage();
+    }
   </script>
 </body>
 </html>
