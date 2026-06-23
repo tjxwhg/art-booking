@@ -121,7 +121,7 @@
     let selectedDate = null;
     let selectedTimeSlot = null;
 
-    // 登录（仅查询 profiles 表，不涉及任何管理员逻辑）
+    // 登录
     const loginBtn = document.getElementById('loginBtn');
     loginBtn.addEventListener('click', async () => {
       const phone = document.getElementById('phoneInput').value.trim();
@@ -146,8 +146,7 @@
     // 自动登录
     const saved = localStorage.getItem('currentUser');
     if (saved) {
-      const profile = JSON.parse(saved);
-      showMain(profile);
+      showMain(JSON.parse(saved));
     } else {
       document.getElementById('loginPage').classList.remove('hidden');
     }
@@ -180,7 +179,7 @@
       checkSubmitReady();
     }
 
-    // 加载课程（不绑定教室）
+    // 加载课程
     async function loadCourses() {
       const { data } = await supabase.from('courses').select('name');
       const courses = [...new Set(data.map(c => c.name))];
