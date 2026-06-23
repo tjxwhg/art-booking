@@ -69,13 +69,13 @@
       <h2 class="text-2xl font-bold mb-4">3️⃣ 选择老师</h2>
       <div class="flex flex-col space-y-3">
         <label class="flex items-center text-lg">
-          <input type="radio" name="teacherChoice" value="自带老师" class="mr-3 h-5 w-5"> 自带老师
+          <input type="radio" name="teacherChoice" value="辅导老师" class="mr-3 h-5 w-5"> 辅导老师
         </label>
         <label class="flex items-center text-lg">
-          <input type="radio" name="teacherChoice" value="预约文化馆专业老师" class="mr-3 h-5 w-5"> 预约文化馆专业老师
+          <input type="radio" name="teacherChoice" value="预约老师" class="mr-3 h-5 w-5"> 预约老师
         </label>
         <select id="proTeacherSelect" class="hidden text-lg p-3 border rounded-xl mt-2">
-          <option value="">-- 选择专业老师 --</option>
+          <option value="">-- 选择老师 --</option>
         </select>
       </div>
     </div>
@@ -202,20 +202,20 @@
       checkSubmitReady();
     }
 
-    // 专业老师下拉
+    // 老师下拉
     async function loadProTeachers() {
       const { data } = await supabase.from('courses').select('teacher');
       const teachers = [...new Set(data.map(c => c.teacher).filter(Boolean))];
       const select = document.getElementById('proTeacherSelect');
-      select.innerHTML = '<option value="">-- 选择专业老师 --</option>' +
+      select.innerHTML = '<option value="">-- 选择老师 --</option>' +
         teachers.map(t => `<option value="${t}">${t}</option>`).join('');
     }
 
     document.querySelectorAll('input[name="teacherChoice"]').forEach(radio => {
       radio.addEventListener('change', (e) => {
         const val = e.target.value;
-        document.getElementById('proTeacherSelect').classList.toggle('hidden', val !== '预约文化馆专业老师');
-        if (val === '自带老师') selectedTeacher = '自带老师';
+        document.getElementById('proTeacherSelect').classList.toggle('hidden', val !== '预约老师');
+        if (val === '辅导老师') selectedTeacher = '辅导老师';
         else selectedTeacher = document.getElementById('proTeacherSelect').value;
         checkSubmitReady();
       });
@@ -269,7 +269,7 @@
     function checkSubmitReady() {
       const teacherRadio = document.querySelector('input[name="teacherChoice"]:checked');
       if (!teacherRadio) selectedTeacher = null;
-      else if (teacherRadio.value === '自带老师') selectedTeacher = '自带老师';
+      else if (teacherRadio.value === '辅导老师') selectedTeacher = '辅导老师';
       else selectedTeacher = document.getElementById('proTeacherSelect').value;
 
       const participants = parseInt(document.getElementById('participantsInput').value);
