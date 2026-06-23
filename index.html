@@ -182,7 +182,7 @@
       checkSubmitReady();
     }
 
-    // 加载课程
+    // 加载课程（不绑定教室）
     async function loadCourses() {
       const { data } = await supabase.from('courses').select('name');
       const courses = [...new Set(data.map(c => c.name))];
@@ -279,11 +279,25 @@
       document.getElementById('submitBooking').disabled = !(selectedRoom && selectedCourse && selectedTeacher && participants > 0 && selectedDate && selectedTimeSlot);
     }
 
-    // 提交预约
+    // 提交预约（增加“一人一约”限制）
     document.getElementById('submitBooking').addEventListener('click', async () => {
       if (!selectedRoom || !selectedCourse || !selectedTeacher || !selectedDate || !selectedTimeSlot) return;
       const participants = parseInt(document.getElementById('participantsInput').value);
       if (!participants || participants < 1) return alert('请填写参加人数');
+
+      // 检查该用户是否已有有效预约（状态为 confirmed，且日期 >= 今天）
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: existing } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('user_id', currentUser)
+        .eq('status', 'confirmed')
+        .gte('booking_date', today)
+        .maybeSingle();
+
+      if (existing) {
+        return alert('您已有有效预约（日期≥今天），请先取消现有预约后再重新预约。');
+      }
 
       const { error } = await supabase.from('bookings').insert({
         user_id: currentUser,
