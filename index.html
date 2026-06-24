@@ -29,7 +29,6 @@
     .btn-primary:hover { background-color: #a0522d; }
     h1, h2 { color: #5c3d2e; font-family: "KaiTi", "楷体", "STKaiti", serif; }
     .highlight-card { border: 2px solid #8b4513; background-color: rgba(139,69,19,0.08); }
-    /* 确保选择卡片文字居中 */
     .selection-card {
       display: flex;
       align-items: center;
@@ -71,7 +70,6 @@
     <div class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">2️⃣ 选择课程</h2>
       <div id="courseList" class="grid grid-cols-2 gap-4"></div>
-      <!-- 自选课程输入框（默认隐藏） -->
       <div id="customCourseInput" class="hidden mt-4">
         <input type="text" id="customCourseName" class="w-full text-lg p-4 border border-gray-300 rounded-xl" placeholder="请输入课程名称">
       </div>
@@ -119,12 +117,12 @@
 
     let currentUser = null;
     let selectedRoom = null;
-    let selectedCourse = null; // 可以是固定课程名，或自选课程时为用户输入的文本
+    let selectedCourse = null;
     let selectedTeacher = null;
     let selectedDate = null;
     let selectedTimeSlot = null;
 
-    // 固定课程列表（顺序展示，最后一项为“自选课程”）
+    // 固定课程列表
     const FIXED_COURSES = [
       '舞蹈排练',
       '少儿书法',
@@ -192,7 +190,7 @@
       location.reload();
     });
 
-    // 加载教室（从数据库读取，保证灵活）
+    // 加载教室
     async function loadRooms() {
       const { data } = await supabase.from('rooms').select('*');
       const container = document.getElementById('roomList');
@@ -214,7 +212,7 @@
       checkSubmitReady();
     }
 
-    // 加载固定课程（不依赖数据库）
+    // 加载固定课程
     function loadFixedCourses() {
       const container = document.getElementById('courseList');
       container.innerHTML = '';
@@ -227,33 +225,28 @@
       });
     }
 
-    // 课程选中逻辑
     const customInputDiv = document.getElementById('customCourseInput');
     const customCourseInput = document.getElementById('customCourseName');
 
     function selectCourse(element, courseName) {
       document.querySelectorAll('#courseList div').forEach(el => el.classList.remove('highlight-card'));
       element.classList.add('highlight-card');
-      selectedCourse = courseName; // 如果是自选课程，暂时设为“自选课程”，实际提交时会用输入框内容覆盖
-      // 显示/隐藏自定义输入框
+      selectedCourse = courseName;
       if (courseName === '自选课程') {
         customInputDiv.classList.remove('hidden');
-        // 如果输入框有内容，立即作为课程名
         if (customCourseInput.value.trim()) {
           selectedCourse = customCourseInput.value.trim();
         } else {
-          selectedCourse = null; // 强制必须填写
+          selectedCourse = null;
         }
       } else {
         customInputDiv.classList.add('hidden');
-        customCourseInput.value = ''; // 清空
+        customCourseInput.value = '';
       }
       checkSubmitReady();
     }
 
-    // 监听自选课程输入
     customCourseInput.addEventListener('input', () => {
-      // 只有当前选中“自选课程”时才更新 selectedCourse
       const activeCard = document.querySelector('#courseList div.highlight-card');
       if (activeCard && activeCard.textContent === '自选课程') {
         selectedCourse = customCourseInput.value.trim();
@@ -261,7 +254,7 @@
       }
     });
 
-    // 老师姓名输入
+    // 老师姓名
     const teacherInput = document.getElementById('teacherNameInput');
     teacherInput.addEventListener('input', () => {
       selectedTeacher = teacherInput.value.trim();
@@ -310,14 +303,13 @@
     }
 
     function checkSubmitReady() {
-      // 确保课程有效（自选课程时输入框必须有内容）
       let validCourse = selectedCourse;
       if (selectedCourse === '自选课程') {
         validCourse = customCourseInput.value.trim();
       }
       const participants = parseInt(document.getElementById('participantsInput').value);
       const teacherVal = teacherInput.value.trim();
-      selectedTeacher = teacherVal; // 同步
+      selectedTeacher = teacherVal;
 
       document.getElementById('submitBooking').disabled = !(
         selectedRoom &&
@@ -329,9 +321,8 @@
       );
     }
 
-    // 提交预约（一人一约）
+    // 提交预约（每天最多2次）
     document.getElementById('submitBooking').addEventListener('click', async () => {
-      // 最终确定课程名
       let finalCourse = selectedCourse;
       if (selectedCourse === '自选课程') {
         finalCourse = customCourseInput.value.trim();
@@ -344,18 +335,22 @@
       const participants = parseInt(document.getElementById('participantsInput').value);
       if (!participants || participants < 1) return alert('请填写参加人数');
 
-      // 检查该用户是否已有有效预约
+      // 检查今天已确认的预约数量
       const today = new Date().toISOString().slice(0, 10);
-      const { data: existing } = await supabase
+      const { data: todayBookings, error: countError } = await supabase
         .from('bookings')
         .select('id')
         .eq('user_id', currentUser)
         .eq('status', 'confirmed')
         .gte('booking_date', today)
-        .maybeSingle();
+        .lte('booking_date', today); // 仅限当天，因为需求是每天
 
-      if (existing) {
-        return alert('您已有有效预约（日期≥今天），请先联系管理员取消后再重新预约。');
+      if (countError) {
+        return alert('检查预约状态失败，请稍后再试');
+      }
+
+      if (todayBookings && todayBookings.length >= 2) {
+        return alert('您今天已有两次预约，无法继续预约。');
       }
 
       const { error } = await supabase.from('bookings').insert({
