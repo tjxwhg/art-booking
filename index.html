@@ -24,10 +24,18 @@
       color: white;
       border-radius: 0.8rem;
       font-weight: bold;
+      text-align: center;
     }
     .btn-primary:hover { background-color: #a0522d; }
     h1, h2 { color: #5c3d2e; font-family: "KaiTi", "楷体", "STKaiti", serif; }
     .highlight-card { border: 2px solid #8b4513; background-color: rgba(139,69,19,0.08); }
+    /* 确保选择卡片文字居中 */
+    .selection-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -59,29 +67,20 @@
       <div id="roomList" class="grid grid-cols-2 gap-4"></div>
     </div>
 
-    <!-- 2. 选择课程 -->
+    <!-- 2. 选择课程（固定课程 + 自选课程） -->
     <div class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">2️⃣ 选择课程</h2>
       <div id="courseList" class="grid grid-cols-2 gap-4"></div>
+      <!-- 自选课程输入框（默认隐藏） -->
+      <div id="customCourseInput" class="hidden mt-4">
+        <input type="text" id="customCourseName" class="w-full text-lg p-4 border border-gray-300 rounded-xl" placeholder="请输入课程名称">
+      </div>
     </div>
 
-    <!-- 3. 选择老师（自行填写） -->
+    <!-- 3. 老师姓名 -->
     <div class="card shadow p-6 mb-4">
-      <h2 class="text-2xl font-bold mb-4">3️⃣ 选择老师</h2>
-      <div class="flex flex-col space-y-3">
-        <label class="flex items-center text-lg">
-          <input type="radio" name="teacherChoice" value="辅导老师" class="mr-3 h-5 w-5"> 辅导老师
-        </label>
-        <div id="selfTeacherInput" class="hidden ml-8">
-          <input type="text" id="selfTeacherName" class="w-full text-lg p-3 border border-gray-300 rounded-xl" placeholder="请输入辅导老师姓名">
-        </div>
-        <label class="flex items-center text-lg">
-          <input type="radio" name="teacherChoice" value="预约老师" class="mr-3 h-5 w-5"> 预约老师
-        </label>
-        <div id="proTeacherInput" class="hidden ml-8">
-          <input type="text" id="proTeacherName" class="w-full text-lg p-3 border border-gray-300 rounded-xl" placeholder="请输入预约的专业老师姓名">
-        </div>
-      </div>
+      <h2 class="text-2xl font-bold mb-4">3️⃣ 老师姓名</h2>
+      <input type="text" id="teacherNameInput" class="w-full text-lg p-4 border border-gray-300 rounded-xl" placeholder="填写老师姓名">
     </div>
 
     <!-- 4. 参加人数 -->
@@ -120,10 +119,23 @@
 
     let currentUser = null;
     let selectedRoom = null;
-    let selectedCourse = null;
+    let selectedCourse = null; // 可以是固定课程名，或自选课程时为用户输入的文本
     let selectedTeacher = null;
     let selectedDate = null;
     let selectedTimeSlot = null;
+
+    // 固定课程列表（顺序展示，最后一项为“自选课程”）
+    const FIXED_COURSES = [
+      '舞蹈排练',
+      '少儿书法',
+      '声乐合唱',
+      '器乐民乐',
+      '曲艺快板',
+      '书法绘画',
+      '民俗',
+      '非遗',
+      '自选课程'
+    ];
 
     // 登录
     const loginBtn = document.getElementById('loginBtn');
@@ -150,7 +162,7 @@
       document.getElementById('mainPage').classList.remove('hidden');
       document.getElementById('userDisplay').textContent = `${profile.name}（尾号${profile.phone.slice(-4)}）`;
       loadRooms();
-      loadCourses();
+      loadFixedCourses();
       loadMyBookings();
     }
 
@@ -180,14 +192,14 @@
       location.reload();
     });
 
-    // 加载教室
+    // 加载教室（从数据库读取，保证灵活）
     async function loadRooms() {
       const { data } = await supabase.from('rooms').select('*');
       const container = document.getElementById('roomList');
       container.innerHTML = '';
       data.forEach(room => {
         const card = document.createElement('div');
-        card.className = 'p-4 border-2 rounded-xl cursor-pointer text-lg font-medium card';
+        card.className = 'p-4 border-2 rounded-xl cursor-pointer text-lg font-medium card selection-card';
         card.textContent = room.name;
         card.dataset.roomId = room.id;
         card.addEventListener('click', () => selectRoom(card, room));
@@ -202,65 +214,58 @@
       checkSubmitReady();
     }
 
-    // 加载课程（不绑定教室）
-    async function loadCourses() {
-      const { data } = await supabase.from('courses').select('name');
-      const courses = [...new Set(data.map(c => c.name))];
-      courses.push('自选课程');
+    // 加载固定课程（不依赖数据库）
+    function loadFixedCourses() {
       const container = document.getElementById('courseList');
       container.innerHTML = '';
-      courses.forEach(courseName => {
+      FIXED_COURSES.forEach(courseName => {
         const card = document.createElement('div');
-        card.className = 'p-4 border-2 rounded-xl cursor-pointer text-lg font-medium card';
+        card.className = 'p-4 border-2 rounded-xl cursor-pointer text-lg font-medium card selection-card';
         card.textContent = courseName;
         card.addEventListener('click', () => selectCourse(card, courseName));
         container.appendChild(card);
       });
     }
 
+    // 课程选中逻辑
+    const customInputDiv = document.getElementById('customCourseInput');
+    const customCourseInput = document.getElementById('customCourseName');
+
     function selectCourse(element, courseName) {
       document.querySelectorAll('#courseList div').forEach(el => el.classList.remove('highlight-card'));
       element.classList.add('highlight-card');
-      selectedCourse = courseName;
+      selectedCourse = courseName; // 如果是自选课程，暂时设为“自选课程”，实际提交时会用输入框内容覆盖
+      // 显示/隐藏自定义输入框
+      if (courseName === '自选课程') {
+        customInputDiv.classList.remove('hidden');
+        // 如果输入框有内容，立即作为课程名
+        if (customCourseInput.value.trim()) {
+          selectedCourse = customCourseInput.value.trim();
+        } else {
+          selectedCourse = null; // 强制必须填写
+        }
+      } else {
+        customInputDiv.classList.add('hidden');
+        customCourseInput.value = ''; // 清空
+      }
       checkSubmitReady();
     }
 
-    // 老师选择逻辑（自定义输入）
-    const teacherRadios = document.querySelectorAll('input[name="teacherChoice"]');
-    const selfInputDiv = document.getElementById('selfTeacherInput');
-    const proInputDiv = document.getElementById('proTeacherInput');
-    const selfTeacherInput = document.getElementById('selfTeacherName');
-    const proTeacherInput = document.getElementById('proTeacherName');
-
-    teacherRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        if (radio.value === '辅导老师') {
-          selfInputDiv.classList.remove('hidden');
-          proInputDiv.classList.add('hidden');
-          proTeacherInput.value = ''; // 清空另一个输入
-          selectedTeacher = selfTeacherInput.value.trim();
-        } else {
-          proInputDiv.classList.remove('hidden');
-          selfInputDiv.classList.add('hidden');
-          selfTeacherInput.value = '';
-          selectedTeacher = proTeacherInput.value.trim();
-        }
-        checkSubmitReady();
-      });
-    });
-
-    // 监听两个输入框的变化
-    selfTeacherInput.addEventListener('input', () => {
-      if (document.querySelector('input[name="teacherChoice"]:checked')?.value === '辅导老师') {
-        selectedTeacher = selfTeacherInput.value.trim();
+    // 监听自选课程输入
+    customCourseInput.addEventListener('input', () => {
+      // 只有当前选中“自选课程”时才更新 selectedCourse
+      const activeCard = document.querySelector('#courseList div.highlight-card');
+      if (activeCard && activeCard.textContent === '自选课程') {
+        selectedCourse = customCourseInput.value.trim();
         checkSubmitReady();
       }
     });
-    proTeacherInput.addEventListener('input', () => {
-      if (document.querySelector('input[name="teacherChoice"]:checked')?.value === '预约老师') {
-        selectedTeacher = proTeacherInput.value.trim();
-        checkSubmitReady();
-      }
+
+    // 老师姓名输入
+    const teacherInput = document.getElementById('teacherNameInput');
+    teacherInput.addEventListener('input', () => {
+      selectedTeacher = teacherInput.value.trim();
+      checkSubmitReady();
     });
 
     // 人数、日期
@@ -305,24 +310,37 @@
     }
 
     function checkSubmitReady() {
-      const teacherRadio = document.querySelector('input[name="teacherChoice"]:checked');
-      if (teacherRadio) {
-        if (teacherRadio.value === '辅导老师') {
-          selectedTeacher = selfTeacherInput.value.trim();
-        } else {
-          selectedTeacher = proTeacherInput.value.trim();
-        }
-      } else {
-        selectedTeacher = null;
+      // 确保课程有效（自选课程时输入框必须有内容）
+      let validCourse = selectedCourse;
+      if (selectedCourse === '自选课程') {
+        validCourse = customCourseInput.value.trim();
       }
-
       const participants = parseInt(document.getElementById('participantsInput').value);
-      document.getElementById('submitBooking').disabled = !(selectedRoom && selectedCourse && selectedTeacher && participants > 0 && selectedDate && selectedTimeSlot);
+      const teacherVal = teacherInput.value.trim();
+      selectedTeacher = teacherVal; // 同步
+
+      document.getElementById('submitBooking').disabled = !(
+        selectedRoom &&
+        validCourse &&
+        teacherVal &&
+        participants > 0 &&
+        selectedDate &&
+        selectedTimeSlot
+      );
     }
 
     // 提交预约（一人一约）
     document.getElementById('submitBooking').addEventListener('click', async () => {
-      if (!selectedRoom || !selectedCourse || !selectedTeacher || !selectedDate || !selectedTimeSlot) return;
+      // 最终确定课程名
+      let finalCourse = selectedCourse;
+      if (selectedCourse === '自选课程') {
+        finalCourse = customCourseInput.value.trim();
+      }
+      if (!finalCourse) return alert('请选择或填写课程名称');
+
+      const teacherVal = teacherInput.value.trim();
+      if (!teacherVal) return alert('请填写老师姓名');
+
       const participants = parseInt(document.getElementById('participantsInput').value);
       if (!participants || participants < 1) return alert('请填写参加人数');
 
@@ -343,7 +361,7 @@
       const { error } = await supabase.from('bookings').insert({
         user_id: currentUser,
         room_id: selectedRoom.id,
-        teacher_choice: `${selectedCourse}|${selectedTeacher}`,
+        teacher_choice: `${finalCourse}|${teacherVal}`,
         booking_date: selectedDate,
         time_slot: selectedTimeSlot,
         participants: participants,
