@@ -43,7 +43,7 @@
       <button id="logoutBtn" class="text-red-500 underline">退出</button>
     </div>
 
-    <!-- 1. 选择教室（普通预约时使用，假期班自动隐藏） -->
+    <!-- 1. 选择教室（假期班自动隐藏） -->
     <div id="roomSection" class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">1️⃣ 选择教室</h2>
       <div id="roomList" class="grid grid-cols-2 gap-4"></div>
@@ -58,7 +58,7 @@
       </div>
     </div>
 
-    <!-- 3. 老师姓名（始终显示） -->
+    <!-- 3. 老师姓名 -->
     <div class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">3️⃣ 老师姓名</h2>
       <input type="text" id="teacherNameInput" class="w-full text-lg p-4 border border-gray-300 rounded-xl" placeholder="填写老师姓名">
@@ -70,7 +70,7 @@
       <input type="number" id="participantsInput" class="w-full text-xl p-4 border border-gray-300 rounded-xl" min="1" value="1">
     </div>
 
-    <!-- 日期选择：普通预约显示单日，假期班显示范围 -->
+    <!-- 日期选择 -->
     <div id="dateSingleSection" class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">5️⃣ 选择日期</h2>
       <input type="date" id="datePicker" class="w-full text-xl p-4 border border-gray-300 rounded-xl">
@@ -79,15 +79,15 @@
     <div id="dateRangeSection" class="card shadow p-6 mb-4 hidden">
       <h2 class="text-2xl font-bold mb-4">5️⃣ 选择培训日期范围</h2>
       <div class="flex gap-4 items-center">
-        <input type="date" id="startDate" class="flex-1 text-xl p-4 border border-gray-300 rounded-xl" placeholder="开始日期">
+        <input type="date" id="startDate" class="flex-1 text-xl p-4 border border-gray-300 rounded-xl">
         <span class="text-xl">至</span>
-        <input type="date" id="endDate" class="flex-1 text-xl p-4 border border-gray-300 rounded-xl" placeholder="结束日期">
+        <input type="date" id="endDate" class="flex-1 text-xl p-4 border border-gray-300 rounded-xl">
       </div>
-      <p class="text-sm text-gray-500 mt-2">包含起止日期在内的每一天，将自动生成预约</p>
+      <p class="text-sm text-gray-500 mt-2">包含起止日期，每天全天使用</p>
     </div>
 
-    <!-- 6. 选择时段 -->
-    <div class="card shadow p-6 mb-4">
+    <!-- 6. 选择时段（假期班隐藏） -->
+    <div id="timeSection" class="card shadow p-6 mb-4">
       <h2 class="text-2xl font-bold mb-4">6️⃣ 选择时段</h2>
       <div id="timeSlots" class="grid grid-cols-2 gap-3"></div>
     </div>
@@ -113,14 +113,14 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
-    let selectedRoom = null;           // 普通预约选中的教室
-    let selectedCourse = null;        // 课程名
+    let selectedRoom = null;
+    let selectedCourse = null;
     let selectedTeacher = null;
-    let selectedDate = null;          // 普通预约单日
-    let selectedStartDate = null;     // 假期班开始
-    let selectedEndDate = null;       // 假期班结束
+    let selectedDate = null;
+    let selectedStartDate = null;
+    let selectedEndDate = null;
     let selectedTimeSlot = null;
-    let isHolidayMode = false;        // 是否假期培训班模式
+    let isHolidayMode = false;
 
     const FIXED_COURSES = [
       '舞蹈排练', '少儿书法', '声乐合唱', '器乐民乐',
@@ -128,9 +128,8 @@
       '假期培训班', '自选课程'
     ];
 
-    // 假期培训班专用教室名称（与数据库一致）
     const HOLIDAY_ROOM_NAME = '假期培训专用教室';
-    let holidayRoomId = null; // 动态获取
+    let holidayRoomId = null;
 
     // ==================== 登录 ====================
     const loginBtn = document.getElementById('loginBtn');
@@ -155,7 +154,7 @@
       document.getElementById('loginPage').classList.add('hidden');
       document.getElementById('mainPage').classList.remove('hidden');
       document.getElementById('userDisplay').textContent = `${profile.name}（尾号${profile.phone.slice(-4)}）`;
-      loadRooms();       // 先加载教室，获取假期教室ID
+      loadRooms();
       loadFixedCourses();
       loadMyBookings();
     }
@@ -175,14 +174,12 @@
       localStorage.removeItem('currentUser'); currentUser = null; location.reload();
     });
 
-    // ==================== 加载教室（获取假期专用教室ID） ====================
+    // ==================== 加载教室 ====================
     async function loadRooms() {
       const { data } = await supabase.from('rooms').select('*');
       const rooms = data || [];
-      // 找到假期专用教室
       const holidayRoom = rooms.find(r => r.name === HOLIDAY_ROOM_NAME);
       holidayRoomId = holidayRoom ? holidayRoom.id : null;
-      // 渲染教室列表时，排除假期专用教室（因为它不能被普通预约直接选择）
       const container = document.getElementById('roomList');
       container.innerHTML = '';
       rooms.filter(r => r.name !== HOLIDAY_ROOM_NAME).forEach(room => {
@@ -220,29 +217,30 @@
     const roomSection = document.getElementById('roomSection');
     const dateSingle = document.getElementById('dateSingleSection');
     const dateRange = document.getElementById('dateRangeSection');
+    const timeSection = document.getElementById('timeSection');
 
     function selectCourse(element, courseName) {
       document.querySelectorAll('#courseList div').forEach(el => el.classList.remove('highlight-card'));
       element.classList.add('highlight-card');
       selectedCourse = courseName;
-
-      // 判断是否假期培训班
       isHolidayMode = (courseName === '假期培训班');
 
-      // 界面切换
       if (isHolidayMode) {
-        roomSection.classList.add('hidden');        // 隐藏教室选择
+        roomSection.classList.add('hidden');
         dateSingle.classList.add('hidden');
         dateRange.classList.remove('hidden');
-        selectedRoom = null; // 教室由系统自动指定
+        timeSection.classList.add('hidden');      // 隐藏时段选择
+        selectedRoom = null;
+        selectedTimeSlot = '全天';                // 自动设为全天
       } else {
         roomSection.classList.remove('hidden');
         dateRange.classList.add('hidden');
         dateSingle.classList.remove('hidden');
+        timeSection.classList.remove('hidden');   // 显示时段选择
         selectedStartDate = selectedEndDate = null;
+        selectedTimeSlot = null;                  // 清空时段选择
       }
 
-      // 自选课程输入框
       if (courseName === '自选课程') {
         customInputDiv.classList.remove('hidden');
         selectedCourse = customCourseInput.value.trim() || null;
@@ -289,33 +287,21 @@
       checkSubmitReady();
     });
 
-    // ==================== 时段 ====================
+    // ==================== 时段（仅普通预约） ====================
     async function loadTimeSlots() {
       const slots = ['08:00-10:00','10:00-12:00','14:00-16:00','16:00-18:00','18:00-20:00'];
       const container = document.getElementById('timeSlots');
       container.innerHTML = '';
 
-      let roomId = null;
-      let dateToCheck = null;
+      if (isHolidayMode) return; // 假期班不需要时段按钮
 
-      if (isHolidayMode) {
-        if (!holidayRoomId) return; // 未找到专用教室
-        roomId = holidayRoomId;
-        // 假期班只检查开始日期是否冲突？实际上需要逐日检查，这里简化：只检查开始日期当天是否有冲突作为提示
-        dateToCheck = selectedStartDate;
-      } else {
-        if (!selectedRoom || !selectedDate) return;
-        roomId = selectedRoom.id;
-        dateToCheck = selectedDate;
-      }
-
-      if (!dateToCheck) return;
+      if (!selectedRoom || !selectedDate) return;
 
       const { data: occupied } = await supabase
         .from('bookings')
         .select('time_slot')
-        .eq('room_id', roomId)
-        .eq('booking_date', dateToCheck)
+        .eq('room_id', selectedRoom.id)
+        .eq('booking_date', selectedDate)
         .eq('status', 'confirmed');
 
       const occupiedSlots = occupied ? occupied.map(b => b.time_slot) : [];
@@ -347,12 +333,13 @@
       let dateReady = false;
       if (isHolidayMode) {
         dateReady = !!(selectedStartDate && selectedEndDate && selectedStartDate <= selectedEndDate);
+        // 假期班时段固定为“全天”，无需检查 selectedTimeSlot
       } else {
-        dateReady = !!selectedDate;
+        dateReady = !!selectedDate && !!selectedTimeSlot;
       }
 
       document.getElementById('submitBooking').disabled = !(
-        validCourse && teacherVal && participants > 0 && dateReady && selectedTimeSlot &&
+        validCourse && teacherVal && participants > 0 && dateReady &&
         (isHolidayMode || selectedRoom) // 普通预约必须选教室
       );
     }
@@ -374,7 +361,6 @@
         if (!selectedStartDate || !selectedEndDate) return alert('请选择日期范围');
         if (selectedStartDate > selectedEndDate) return alert('开始日期不能晚于结束日期');
 
-        // 检查是否已有假期培训班有效预约
         const today = new Date().toISOString().slice(0, 10);
         const { data: existingHoliday } = await supabase
           .from('bookings')
@@ -386,7 +372,6 @@
           .maybeSingle();
         if (existingHoliday) return alert('您已有一个有效的假期培训班预约，不能重复预约');
 
-        // 生成从 startDate 到 endDate 的每一天
         const dates = [];
         let current = new Date(selectedStartDate + 'T00:00:00');
         const end = new Date(selectedEndDate + 'T00:00:00');
@@ -395,26 +380,25 @@
           current.setDate(current.getDate() + 1);
         }
 
-        // 批量检查冲突（可选，为了数据完整性仍然检查）
+        // 检查冲突（全天专用教室）
         for (const d of dates) {
           const { data: conflict } = await supabase
             .from('bookings')
             .select('id')
             .eq('room_id', holidayRoomId)
             .eq('booking_date', d)
-            .eq('time_slot', selectedTimeSlot)
+            .eq('time_slot', '全天')
             .eq('status', 'confirmed')
             .maybeSingle();
-          if (conflict) return alert(`日期 ${d} 的时段已被占用，请更换时段`);
+          if (conflict) return alert(`日期 ${d} 已被其他假期培训班占用，请调整日期`);
         }
 
-        // 批量插入
         const rows = dates.map(d => ({
           user_id: currentUser,
           room_id: holidayRoomId,
           teacher_choice: `${finalCourse}|${teacherVal}`,
           booking_date: d,
-          time_slot: selectedTimeSlot,
+          time_slot: '全天',                // 固定为全天
           participants: participants,
           status: 'confirmed',
           booking_type: 'holiday'
@@ -427,12 +411,11 @@
           alert(`假期培训班预约成功！共 ${dates.length} 天`);
           selectedStartDate = selectedEndDate = null;
           selectedTimeSlot = null;
-          loadTimeSlots();
           loadMyBookings();
           document.getElementById('submitBooking').disabled = true;
         }
       } else {
-        // 普通预约逻辑（保持原有）
+        // 普通预约逻辑
         if (!selectedRoom) return alert('请选择教室');
         if (!selectedDate) return alert('请选择日期');
 
@@ -474,7 +457,7 @@
       }
     });
 
-    // ==================== 我的预约（分区显示，假期班合并） ====================
+    // ==================== 我的预约 ====================
     async function loadMyBookings() {
       const { data } = await supabase
         .from('bookings')
@@ -483,21 +466,16 @@
         .order('booking_date', { ascending: false });
 
       const today = new Date().toISOString().slice(0, 10);
-
-      // 分离普通预约和假期预约
       const normalBookings = (data || []).filter(b => b.booking_type !== 'holiday');
       const holidayBookings = (data || []).filter(b => b.booking_type === 'holiday');
 
-      // 普通预约分区
       const activeNormal = normalBookings.filter(b => b.status === 'confirmed' && b.booking_date >= today);
       const historyNormal = normalBookings.filter(b => !(b.status === 'confirmed' && b.booking_date >= today));
 
-      // 假期预约合并显示（一个课程阶段作为一条）
       const holidayGroups = groupHolidayBookings(holidayBookings);
       const activeHoliday = holidayGroups.filter(g => g.status === 'confirmed' && g.maxDate >= today);
       const historyHoliday = holidayGroups.filter(g => !(g.status === 'confirmed' && g.maxDate >= today));
 
-      // 渲染有效预约
       const activeContainer = document.getElementById('activeBookings');
       let activeHTML = '';
       if (activeNormal.length === 0 && activeHoliday.length === 0) {
@@ -508,7 +486,6 @@
       }
       activeContainer.innerHTML = activeHTML;
 
-      // 渲染历史预约
       const historyContainer = document.getElementById('historyBookings');
       let historyHTML = '';
       if (historyNormal.length === 0 && historyHoliday.length === 0) {
@@ -519,7 +496,6 @@
       }
       historyContainer.innerHTML = historyHTML;
 
-      // 切换历史按钮
       const toggleBtn = document.getElementById('toggleHistoryBtn');
       toggleBtn.onclick = () => {
         historyContainer.classList.toggle('hidden');
@@ -547,7 +523,7 @@
         <div class="flex justify-between items-center border-b p-3 ${isActive ? 'bg-yellow-50' : 'opacity-70'}">
           <div>
             <div class="font-bold text-lg">🎓 假期培训班 · ${course || '未知课程'}</div>
-            <div class="text-gray-600">${dateRange} 每天 ${g.time_slot} · ${g.participants}人 · 老师：${teacher || '无'}</div>
+            <div class="text-gray-600">${dateRange} 全天 · ${g.participants}人 · 老师：${teacher || '无'}</div>
             <div class="text-sm text-gray-500">共 ${g.days} 天</div>
           </div>
           <div>${isActive ? '<span class="text-green-600 font-bold">进行中</span>' : `<span class="text-gray-400">${g.status === 'cancelled' ? '已取消' : '已结束'}</span>`}</div>
@@ -555,7 +531,6 @@
       `;
     }
 
-    // 将假期预约记录按用户、课程、时段等分组，合并日期范围
     function groupHolidayBookings(bookings) {
       const groups = {};
       bookings.forEach(b => {
